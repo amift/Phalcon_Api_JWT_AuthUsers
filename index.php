@@ -49,23 +49,41 @@ $app->get(
     '/api/users',
     function () use ($app) {
         $jwt = $app->request->getHeader("AUTHORIZATION");
+        $key  = base64_decode('quangbui205999');
+        $jwt = strstr($jwt,'eyJ0');
+
+
         if($jwt)
         {
-            $phql = 'SELECT * FROM App\Models\Users ORDER BY name';
-            $users = $app->modelsManager->executeQuery($phql);
+            try {
+                $decoded = JWT::decode($jwt, $key, array('HS256'));
+                $phql = 'SELECT * FROM App\Models\Users ORDER BY name';
+                $users = $app->modelsManager->executeQuery($phql);
 
-            $data = [];
+                $data = [];
 
-            foreach ($users as $user) {
-                $data[] = [
-                    'id'   => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                ];
+                foreach ($users as $user) {
+                    $data[] = [
+                        'id'   => $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                    ];
+                }
+
+                echo json_encode($data);
+            }
+            catch (Exception $e)
+            {
+                // set response code
+                http_response_code(401);
+
+                // show error message
+                echo json_encode(array(
+                    "message" => "Access denied.",
+                    "error" => $e->getMessage()));
             }
 
-            echo json_encode($data);
         }
         // show error message if jwt is empty
         else{
@@ -230,14 +248,14 @@ $app->post(
 
                 // generate jwt
                 $jwt = JWT::encode($token, $key);
-//                $this->session->set('auth',[ 'jwt'=>$jwt]);
-//                $this->session->set('user',$user);
+
                 echo json_encode(
                     array(
                         "message" => "Successful login.",
                         "jwt" => $jwt
                     )
                 );
+
 
 //                var_dump($jwt);
 //                die();
